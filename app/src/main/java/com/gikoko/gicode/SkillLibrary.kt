@@ -1,4 +1,4 @@
-package com.gikoko.gicode
+package com.gi.gicode
 
 import android.content.Context
 import android.net.Uri
@@ -6,8 +6,28 @@ import androidx.documentfile.provider.DocumentFile
 
 data class AgentSkill(val id: String, val title: String, val description: String, val instructions: String, val source: Uri? = null)
 
-/** Imports user-authored SKILL.md files only from a folder granted through SAF. */
+/** Loads built-in skills and imports user-authored SKILL.md files through SAF. */
 class SkillLibrary(private val context: Context) {
+    fun loadBundled(): List<AgentSkill> {
+        val result = mutableListOf<AgentSkill>()
+        fun visit(path: String) {
+            if (result.size >= 100) return
+            val children = try { context.assets.list(path).orEmpty() } catch (_: Exception) { emptyArray() }
+            if (children.isEmpty()) {
+                if (path.substringAfterLast('/').equals("SKILL.md", true)) {
+                    try {
+                        val text = context.assets.open(path).bufferedReader(Charsets.UTF_8).use { it.readText().take(128 * 1024) }
+                        parseText(text, path.substringAfterLast('/'))?.let { result.add(it) }
+                    } catch (_: Exception) { }
+                }
+            } else {
+                children.forEach { child -> visit("$path/$child") }
+            }
+        }
+        visit("skills")
+        return result
+    }
+
     fun loadFromFolder(treeUri: Uri, maxSkills: Int = 100): List<AgentSkill> {
         val root = DocumentFile.fromTreeUri(context, treeUri) ?: return emptyList()
         val result = mutableListOf<AgentSkill>()
@@ -38,11 +58,18 @@ class SkillLibrary(private val context: Context) {
             }
             String(output.toByteArray(), Charsets.UTF_8)
         } ?: return null
+        parseText(text, file.name ?: "Imported skill")
+    } catch (_: Exception) { null }
+
+    private fun parseText(text: String, fallback: String): AgentSkill? {
+        if (text.isBlank()) return null
         val title = text.lines().firstOrNull { it.trim().startsWith("# ") }
-            ?.trim()?.removePrefix("# ") ?: (file.parentFile?.name ?: "Imported skill")
+            ?.trim()?.removePrefix("# ") ?: fallback
         val description = text.lines().firstOrNull { it.trim().startsWith("description:", true) }
             ?.substringAfter(":")?.trim() ?: "User imported skill"
-        AgentSkill(title.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').take(64),
-            title.take(100), description.take(240), text, file.uri)
-    } catch (_: Exception) { null }
+        return AgentSkill(
+            title.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').take(64),
+            title.take(100), description.take(240), text
+        )
+    }
 }
