@@ -25,6 +25,7 @@ class SkillRegistryClient {
         val items = root.optJSONArray("results")
             ?: root.optJSONArray("skills")
             ?: root.optJSONArray("data")
+            ?: root.optJSONArray("items")
             ?: JSONArray()
         return (0 until items.length()).mapNotNull { index ->
             val item = items.optJSONObject(index) ?: return@mapNotNull null
@@ -64,9 +65,20 @@ class SkillRegistryClient {
         try {
             val code = connection.responseCode
             val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-            val body = stream.bufferedReader(Charsets.UTF_8).use { it.readText().take(128 * 1024 + 1) }
+            val output = java.io.ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            var total = 0
+            stream.use { input ->
+                while (total <= 128 * 1024) {
+                    val count = input.read(buffer, 0, minOf(buffer.size, 128 * 1024 + 1 - total))
+                    if (count <= 0) break
+                    output.write(buffer, 0, count)
+                    total += count
+                }
+            }
+            require(total <= 128 * 1024) { "Response exceeds 128 KB" }
+            val body = String(output.toByteArray(), Charsets.UTF_8)
             if (code !in 200..299) error("Registry HTTP $code: ${body.take(180)}")
-            require(body.length <= 128 * 1024) { "Response exceeds 128 KB" }
             return body
         } finally {
             connection.disconnect()
