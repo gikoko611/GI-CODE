@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="440" viewBox="0 0 1200 440" role="img" aria-labelledby="title desc">
+<title id="title">GIcode — GOD MODE AI AGENT</title><desc id="desc">Neon cyber gold and emerald 3D inspired hero graphic for GIcode.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#050b12"/><stop offset=".55" stop-color="#071b22"/><stop offset="1" stop-color="#090d18"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0a6"/><stop offset=".35" stop-color="#d9a928"/><stop offset=".7" stop-color="#8b5d10"/><stop offset="1" stop-color="#ffe78a"/></linearGradient>
+ <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#baffd6"/><stop offset=".45" stop-color="#39ff88"/><stop offset="1" stop-color="#087d68"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+ <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse"><path d="M42 0H0V42" fill="none" stroke="#39ff88" stroke-opacity=".13" stroke-width="1"/></pattern>
+</defs>
+<rect width="1200" height="440" rx="28" fill="url(#bg)"/><rect width="1200" height="440" rx="28" fill="url(#grid)"/>
+<path d="M0 350L1200 220V440H0Z" fill="#061015" opacity=".65"/>
+<g opacity=".3" stroke="#39ff88" fill="none"><path d="M0 390L1200 260M0 420L1200 290M140 440L430 0M260 440L550 0M380 440L670 0M500 440L790 0"/></g>
+<g transform="translate(900 205)" filter="url(#glow)">
+ <path d="M0 -125L112 -62V62L0 125L-112 62V-62Z" fill="#0a2527" stroke="url(#green)" stroke-width="4"/>
+ <path d="M0 -91L82 -45V45L0 91L-82 45V-45Z" fill="#0d171e" stroke="url(#gold)" stroke-width="3"/>
+ <path d="M-40 32V-30L0 -55L40 -30V32L0 55Z" fill="none" stroke="url(#green)" stroke-width="7"/>
+ <path d="M-22 10L0 -20L22 10M0 -20V38" fill="none" stroke="url(#gold)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<g transform="translate(86 100)">
+ <text x="0" y="0" fill="#b7c9cc" font-family="Arial,sans-serif" font-size="19" letter-spacing="7">MOBILE UNIVERSAL AGENT PLATFORM</text>
+ <text x="0" y="100" fill="url(#gold)" font-family="Arial,sans-serif" font-size="76" font-weight="900" letter-spacing="2">GIcode</text>
+ <text x="2" y="151" fill="url(#green)" font-family="Arial,sans-serif" font-size="27" font-weight="700" letter-spacing="5">GOD MODE AI AGENT</text>
+ <text x="3" y="205" fill="#d5e4e5" font-family="Arial,sans-serif" font-size="19">CODE  •  CREATE  •  AUTOMATE  •  BUILD</text>
+ <g transform="translate(0 250)" font-family="Arial,sans-serif" font-size="14" font-weight="700">
+  <rect width="156" height="38" rx="19" fill="#102b28" stroke="#39ff88"/><text x="78" y="24" text-anchor="middle" fill="#8dffbc">ANDROID 10+</text>
+  <rect x="170" width="145" height="38" rx="19" fill="#252012" stroke="#d9a928"/><text x="242" y="24" text-anchor="middle" fill="#ffe28a">ARMV7 READY</text>
+  <rect x="329" width="142" height="38" rx="19" fill="#102b28" stroke="#39ff88"/><text x="400" y="24" text-anchor="middle" fill="#8dffbc">UNIVERSAL</text>
+ </g>
+</g>
+<rect x="2" y="2" width="1196" height="436" rx="26" fill="none" stroke="url(#gold)" stroke-opacity=".7" stroke-width="2"/>
+</svg>
