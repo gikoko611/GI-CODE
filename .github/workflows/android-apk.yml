@@ -16,6 +16,20 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Prepare GIcode branding resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi app/src/main/res/drawable-nodpi app/src/main/res/drawable
+          magick assets/branding/gicode_icon_512.png -resize 48x48 app/src/main/res/mipmap-mdpi/ic_launcher.png
+          magick assets/branding/gicode_icon_512.png -resize 72x72 app/src/main/res/mipmap-hdpi/ic_launcher.png
+          magick assets/branding/gicode_icon_512.png -resize 96x96 app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          magick assets/branding/gicode_icon_512.png -resize 144x144 app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          magick assets/branding/gicode_icon_512.png -resize 192x192 app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          magick assets/branding/gicode_icon_512.png -resize 432x432 app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png
+          cp assets/branding/gicode_splash_1080x1920.png app/src/main/res/drawable-nodpi/gicode_splash.png
       - name: Configure Android SDK
         shell: bash
         run: |
