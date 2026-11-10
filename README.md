@@ -8,7 +8,7 @@
 
 [![Build](https://github.com/gikoko611/GI-CODE/actions/workflows/android-apk.yml/badge.svg)](https://github.com/gikoko611/GI-CODE/actions/workflows/android-apk.yml)
 [![Latest Release](https://img.shields.io/github/v/release/gikoko611/GI-CODE?style=for-the-badge&color=39ff88&label=RELEASE)](https://github.com/gikoko611/GI-CODE/releases)
-[![License](https://img.shields.io/badge/license-see%20repository-blue?style=for-the-badge)](#license)
+[![License](https://img.shields.io/badge/license-MIT-39ff88?style=for-the-badge)](LICENSE)
 [![Android](https://img.shields.io/badge/Android-10%2B-39ff88?style=for-the-badge&logo=android&logoColor=black)](#device-editions)
 
 **AI Chat · Agent Modes · Skills · Universal Tools · Workspace · Termux · MCP-ready Architecture**
@@ -141,9 +141,27 @@ Tag pushes matching `v*` trigger GitHub Release publishing after both APKs pass 
 
 The initial CI release workflow uses the runner's Android debug signing key so the generated APKs are signed and installable for testing. This is **not a permanent production signing identity**. Before publishing upgradeable future releases, configure a private, persistent release keystore through GitHub Actions Secrets. Never commit a keystore or passwords to this repository.
 
+## ◈ Contact & Community
+
+<div align="center">
+
+| <img src="https://img.shields.io/badge/GMAIL-Contact%20by%20Email-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Gmail"/> | <img src="https://img.shields.io/badge/FACEBOOK-Connect-1877F2?style=for-the-badge&logo=facebook&logoColor=white" alt="Facebook"/> | <img src="https://img.shields.io/badge/GITHUB-Source%20Code-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"/> |
+|---|---|---|
+| [gikoko611@gmail.com](mailto:gikoko611@gmail.com) | [Facebook Profile](https://www.facebook.com/share/198EM2iFMg/) | [GIcode Repository](https://github.com/gikoko611/GI-CODE) |
+
+**Questions · Feedback · Collaboration · Bug Reports**
+
+</div>
+
 ## ◈ License
 
-Review the repository's license and the license of each imported skill or dependency before redistribution. Upstream skill content should retain its original attribution and license terms.
+GIcode is released under the **MIT License**.
+
+You are free to use, copy, modify, merge, publish, distribute, sublicense and/or sell copies of the software, subject to the terms in the [LICENSE](LICENSE) file.
+
+**Copyright © 2026 I KO KO**
+
+Imported skills, third-party libraries and other upstream materials may have their own licenses and attribution requirements. Those terms remain applicable to the respective materials.
 
 ---
 
