@@ -158,7 +158,7 @@ private fun GIApp(
     var busy by remember { mutableStateOf(false) }
     var mode by remember { mutableStateOf(AgentMode.ASK) }
     var historyIds by remember { mutableStateOf(emptyList<String>()) }
-    var skills by remember { mutableStateOf(SkillLibrary(context).loadBundled()) }
+    var skills by remember { mutableStateOf(SkillLibrary(context).loadAll()) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(conversationId) {
@@ -233,11 +233,12 @@ private fun GIApp(
             )
             "SKILLS" -> SkillsScreen(
                 skills, workspaceUri != null,
+                onInstalled = { skills = SkillLibrary(context).loadAll() },
                 onImport = {
                     val uri = workspaceUri
                     if (uri != null) scope.launch {
                         status = "IMPORTING SKILLS..."
-                        skills = withContext(Dispatchers.IO) { SkillLibrary(context).loadFromFolder(uri) }
+                        skills = withContext(Dispatchers.IO) { (SkillLibrary(context).loadAll() + SkillLibrary(context).loadFromFolder(uri)).distinctBy { it.id } }
                         status = "SKILLS: ${skills.size}"
                     }
                 }
@@ -462,21 +463,101 @@ private fun ProjectScreen(
 }
 
 @Composable
-private fun SkillsScreen(skills: List<AgentSkill>, canImport: Boolean, onImport: () -> Unit) {
+private fun SkillsScreen(
+    skills: List<AgentSkill>,
+    canImport: Boolean,
+    onImport: () -> Unit,
+    onInstalled: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val registry = remember { SkillRegistryClient() }
+    var query by remember { mutableStateOf("") }
+    var results by remember { mutableStateOf(emptyList<RemoteSkill>()) }
+    var searching by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf("") }
+    var selected by remember { mutableStateOf<RemoteSkill?>(null) }
+    var previewText by remember { mutableStateOf("") }
+    var loadingPreview by remember { mutableStateOf(false) }
+
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("SKILL LIBRARY", color = Neon, fontWeight = FontWeight.Bold)
-        Text("Import user-provided SKILL.md files from the selected workspace folder.", color = Muted, fontSize = 10.sp)
-        Button(onClick = onImport, enabled = canImport, colors = ButtonDefaults.buttonColors(containerColor = Neon)) {
-            Text("IMPORT SKILL.MD FROM WORKSPACE", color = Void, fontSize = 10.sp)
+        Text("GIcode SKILL LIBRARY", color = Neon, fontWeight = FontWeight.Bold)
+        Text("${skills.size} local skills • On-demand activation • Scripts are not executed", color = Muted, fontSize = 10.sp)
+        OutlinedTextField(query, { query = it }, modifier = Modifier.fillMaxWidth(),
+            label = { Text("Search online Agent Skills") },
+            placeholder = { Text("e.g. Python, React, video editing, MCP") }, singleLine = true)
+        Button(onClick = {
+            if (query.trim().length >= 2 && !searching) {
+                searching = true
+                message = "SEARCHING SKILLMD..."
+                scope.launch {
+                    try {
+                        results = withContext(Dispatchers.IO) { registry.search(query.trim()) }
+                        message = if (results.isEmpty()) "No results returned. Try another keyword." else "${results.size} results • Review each skill before installing."
+                    } catch (e: Exception) { message = "REGISTRY ERROR: ${e.message ?: "Unknown error"}" }
+                    finally { searching = false }
+                }
+            } else message = "Enter at least 2 characters."
+        }, enabled = !searching, colors = ButtonDefaults.buttonColors(containerColor = Neon)) {
+            Text(if (searching) "SEARCHING..." else "SEARCH ONLINE SKILLS", color = Void)
         }
-        if (skills.isEmpty()) Text("No imported skills yet. Select a project folder, then import.", color = Muted)
+        if (message.isNotBlank()) Text(message, color = Muted, fontSize = 10.sp)
+        results.forEach { item ->
+            Column(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(9.dp)).padding(11.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(item.name, color = Neon, fontWeight = FontWeight.Bold)
+                Text(item.description, color = White, fontSize = 10.sp)
+                Text("Source: ${item.source} • License: ${item.license}", color = Muted, fontSize = 9.sp)
+                Text("Safety metadata: ${item.safety}", color = Muted, fontSize = 9.sp)
+                OutlinedButton(onClick = {
+                    selected = item
+                    loadingPreview = true
+                    previewText = ""
+                    scope.launch {
+                        try { previewText = withContext(Dispatchers.IO) { registry.fetchSkill(item.rawUrl) } }
+                        catch (e: Exception) { previewText = "DOWNLOAD ERROR: ${e.message ?: "Unknown error"}" }
+                        finally { loadingPreview = false }
+                    }
+                }, enabled = !loadingPreview) { Text("REVIEW / INSTALL", color = Neon, fontSize = 10.sp) }
+            }
+        }
+        Divider(color = Neon.copy(alpha = .25f))
+        Text("LOCAL SKILLS", color = Neon, fontWeight = FontWeight.Bold)
+        OutlinedButton(onClick = onImport, enabled = canImport) {
+            Text("IMPORT SKILL.MD FROM WORKSPACE", color = Neon, fontSize = 10.sp)
+        }
         skills.forEach { skill ->
             Column(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(9.dp)).padding(11.dp)) {
                 Text(skill.title, color = Neon, fontWeight = FontWeight.Bold)
                 Text(skill.description, color = Muted, fontSize = 10.sp)
-                Text("ID: ${skill.id}  •  ${skill.instructions.length} chars", color = Muted, fontSize = 9.sp)
+                Text("ID: ${skill.id} • ${skill.instructions.length} chars", color = Muted, fontSize = 9.sp)
             }
         }
+    }
+
+    selected?.let { item ->
+        AlertDialog(
+            onDismissRequest = { selected = null; previewText = "" },
+            title = { Text(if (loadingPreview) "Loading skill..." else "Review: ${item.name}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Source: ${item.source} • License: ${item.license}", color = Muted, fontSize = 10.sp)
+                    Text("Review the instructions before installation. GIcode stores SKILL.md as text and never executes bundled scripts.", color = Muted, fontSize = 10.sp)
+                    Text(previewText.take(3500), color = White, fontFamily = FontFamily.Monospace, fontSize = 9.sp)
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = !loadingPreview && previewText.startsWith("---"), onClick = {
+                    try {
+                        SkillLibrary(context).installRemote(previewText)
+                        onInstalled()
+                        message = "Installed: ${item.name}"
+                        selected = null
+                        previewText = ""
+                    } catch (e: Exception) { message = "INSTALL FAILED: ${e.message ?: "Unknown error"}" }
+                }) { Text("INSTALL SKILL", color = Neon) }
+            },
+            dismissButton = { TextButton(onClick = { selected = null; previewText = "" }) { Text("CANCEL") } }
+        )
     }
 }
 
