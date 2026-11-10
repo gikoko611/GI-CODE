@@ -214,11 +214,8 @@ private fun GIApp(
                         scope.launch {
                             withContext(Dispatchers.IO) { history.add(conversationId, "user", prompt) }
                             val result = withContext(Dispatchers.IO) {
-                                val blenderSkillContext = skills.filter { skill ->
-                                    val q = prompt.lowercase()
-                                    listOf("blender", "3d", "bpy", "fbx", "glb", "obj", "animation", "modeling").any { q.contains(it) } && skill.id.contains("blender")
-                                }.joinToString("\n\n") { "\n[SKILL: ${it.title}]\n${it.instructions}" }
-                                requestChat(baseUrl, apiKey, model, updated, mode.instruction + blenderSkillContext)
+                                val activeSkillContext = SkillRouter.buildContext(skills, prompt)
+                                requestChat(baseUrl, apiKey, model, updated, mode.instruction + activeSkillContext)
                             }
                             messages = updated + ChatMessage("assistant", result)
                             withContext(Dispatchers.IO) { history.add(conversationId, "assistant", result) }
