@@ -58,11 +58,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val prefs = getSharedPreferences("gicode", MODE_PRIVATE)
+        val secrets = SecureSecretStore(this)
+        val legacyKey = prefs.getString("apiKey", null)
+        if (!legacyKey.isNullOrBlank() && secrets.get("provider.apiKey").isNullOrBlank()) {
+            secrets.put("provider.apiKey", legacyKey)
+            prefs.edit().remove("apiKey").apply()
+        }
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(primary = Neon, background = Void, surface = Panel,
                 onPrimary = Void, onBackground = White, onSurface = White)) {
                 GIApp(
                     prefs = prefs,
+                    secrets = secrets,
                     workspaceName = workspaceName,
                     workspaceFiles = workspaceFiles,
                     onChooseFolder = { openTree.launch(null) },
@@ -80,6 +87,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun GIApp(
     prefs: android.content.SharedPreferences,
+    secrets: SecureSecretStore,
     workspaceName: String,
     workspaceFiles: List<String>,
     onChooseFolder: () -> Unit,
@@ -88,7 +96,7 @@ private fun GIApp(
 ) {
     var page by remember { mutableStateOf("CHAT") }
     var baseUrl by remember { mutableStateOf(prefs.getString("baseUrl", "https://api.openai.com/v1") ?: "") }
-    var apiKey by remember { mutableStateOf(prefs.getString("apiKey", "") ?: "") }
+    var apiKey by remember { mutableStateOf(secrets.get("provider.apiKey") ?: "") }
     var model by remember { mutableStateOf(prefs.getString("model", "gpt-4o-mini") ?: "") }
     var modelList by remember { mutableStateOf(listOf<String>()) }
     var chatInput by remember { mutableStateOf("") }
@@ -139,7 +147,9 @@ private fun GIApp(
             else -> SettingsScreen(baseUrl, { baseUrl = it }, apiKey, { apiKey = it }, model, { model = it },
                 modelList, { modelList = it }, onSave = {
                     prefs.edit().putString("baseUrl", baseUrl.trim().trimEnd('/'))
-                        .putString("apiKey", apiKey).putString("model", model).apply()
+                        .putString("model", model).remove("apiKey").apply()
+                    if (apiKey.isBlank()) secrets.remove("provider.apiKey")
+                    else secrets.put("provider.apiKey", apiKey)
                     status = "SETTINGS SAVED"
                 }, onLoadModels = {
                     scope.launch {
@@ -254,7 +264,7 @@ private fun SettingsScreen(
                 }
             }
         }
-        Text("API keys are stored in app-private preferences on this device. Use a trusted provider; requests are sent to the Base URL you enter. No free-only guarantee is made.", color = Muted, fontSize = 11.sp)
+        Text("API keys are encrypted with Android Keystore AES-GCM. Use a trusted provider; requests are sent to the Base URL you enter. No free-only guarantee is made.", color = Muted, fontSize = 11.sp)
     }
 }
 
