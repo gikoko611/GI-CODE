@@ -43,6 +43,12 @@ android {
         }
     }
 
+    lint {
+        // This APK is distributed for sideloading and keeps Android 10 (API 29)
+        // behavior compatibility. Revisit targetSdk before any Play Store release.
+        disable += "ExpiredTargetSdkVersion"
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
