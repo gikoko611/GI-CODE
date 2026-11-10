@@ -26,8 +26,17 @@ class SkillLibrary(private val context: Context) {
     }
 
     private fun parse(file: DocumentFile): AgentSkill? = try {
-        val text = context.contentResolver.openInputStream(file.uri)?.use {
-            String(it.readNBytes(128 * 1024), Charsets.UTF_8)
+        val text = context.contentResolver.openInputStream(file.uri)?.use { input ->
+            val output = java.io.ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            var total = 0
+            while (total < 128 * 1024) {
+                val count = input.read(buffer, 0, minOf(buffer.size, 128 * 1024 - total))
+                if (count <= 0) break
+                output.write(buffer, 0, count)
+                total += count
+            }
+            String(output.toByteArray(), Charsets.UTF_8)
         } ?: return null
         val title = text.lines().firstOrNull { it.trim().startsWith("# ") }
             ?.trim()?.removePrefix("# ") ?: (file.parentFile?.name ?: "Imported skill")
