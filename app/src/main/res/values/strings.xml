@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">GIcode</string>
+    <string name="accessibility_description">Allows GIcode to read visible UI text and perform user-requested taps and gestures after you enable the service.</string>
+</resources>
