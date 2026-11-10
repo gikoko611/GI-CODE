@@ -3,17 +3,46 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
 android {
     namespace = "com.gikoko.gicode"
     compileSdk = 35
+
     defaultConfig {
         applicationId = "com.gikoko.gicode"
         minSdk = 29
         targetSdk = 29
         versionCode = 1
         versionName = "0.0.1"
-        ndk { abiFilters += listOf("armeabi-v7a") }
     }
+
+    flavorDimensions += "device"
+    productFlavors {
+        create("redmi9a") {
+            dimension = "device"
+            applicationIdSuffix = ".redmi9a"
+            versionNameSuffix = "-redmi9a"
+            ndk { abiFilters += listOf("armeabi-v7a") }
+            resValue("string", "app_name", "GIcode Redmi 9A")
+        }
+        create("universal") {
+            dimension = "device"
+            applicationIdSuffix = ".universal"
+            versionNameSuffix = "-universal"
+            ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64") }
+            resValue("string", "app_name", "GIcode Universal")
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            // CI fallback signing makes the first public APK installable.
+            // Replace with a private persistent release keystore before publishing updates.
+            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -22,6 +51,7 @@ android {
     buildFeatures { compose = true }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
 }
+
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.activity:activity-compose:1.9.3")
