@@ -358,12 +358,14 @@ private fun ToolsScreen(onChooseFolder: () -> Unit, onAccessibility: () -> Unit,
         ToolCard("TERMINAL BRIDGE", "Launch Termux for local shell commands. Commands are not silently executed by GIcode.", "OPEN TERMUX", onOpenTermux)
         ToolCard("ACCESSIBILITY BRIDGE", "Optional Android UI access. Enable manually in system settings; automation is not active in this build.", "ACCESSIBILITY SETTINGS", onAccessibility)
         Text("AGENT TOOL REGISTRY", color = Neon, fontWeight = FontWeight.Bold)
-        AgentToolRegistry.tools.forEach { tool ->
+        val universalTools = remember { UniversalToolSystem.createDefault().definitions() }
+        universalTools.forEach { tool ->
             val risk = tool.risk.name
-            Text("${tool.id}  •  $risk\n${tool.description}", color = White, fontSize = 10.sp,
+            val state = if (tool.category == ToolCategory.WORKSPACE) "REGISTERED • LOCAL SAF" else "REGISTERED • RUNTIME PENDING"
+            Text("${tool.id}  •  $risk\\n${tool.description}\\n$state", color = White, fontSize = 10.sp,
                 modifier = Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(8.dp)).padding(10.dp))
         }
-        Text("GitHub remote operations, terminal command execution and autonomous multi-file agent loops are not enabled yet.", color = Muted, fontSize = 10.sp)
+        Text("Guarded Tool Calling dispatcher is included. Termux execution, GitHub write, MCP and FFmpeg require runtime adapters before they can execute.", color = Muted, fontSize = 10.sp)
     }
 }
 
