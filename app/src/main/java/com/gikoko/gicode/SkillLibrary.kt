@@ -1,4 +1,4 @@
-package com.gi.gicode
+package com.gikoko.gicode
 
 import android.content.Context
 import android.net.Uri
