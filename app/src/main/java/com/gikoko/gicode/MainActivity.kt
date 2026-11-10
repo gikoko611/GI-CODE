@@ -158,7 +158,7 @@ private fun GIApp(
     var busy by remember { mutableStateOf(false) }
     var mode by remember { mutableStateOf(AgentMode.ASK) }
     var historyIds by remember { mutableStateOf(emptyList<String>()) }
-    var skills by remember { mutableStateOf(emptyList<AgentSkill>()) }
+    var skills by remember { mutableStateOf(SkillLibrary(context).loadBundled()) }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(conversationId) {
@@ -214,7 +214,7 @@ private fun GIApp(
                         scope.launch {
                             withContext(Dispatchers.IO) { history.add(conversationId, "user", prompt) }
                             val result = withContext(Dispatchers.IO) {
-                                requestChat(baseUrl, apiKey, model, updated, mode.instruction)
+                                requestChat(baseUrl, apiKey, model, updated, mode.instruction + skills.filter { skill ->\n                                    val q = prompt.lowercase()\n                                    listOf("blender", "3d", "bpy", "fbx", "glb", "obj", "animation", "modeling").any { q.contains(it) } && skill.id.contains("blender")\n                                }.joinToString("\\n\\n") { "\\n[SKILL: ${it.title}]\\n${it.instructions}" })
                             }
                             messages = updated + ChatMessage("assistant", result)
                             withContext(Dispatchers.IO) { history.add(conversationId, "assistant", result) }
