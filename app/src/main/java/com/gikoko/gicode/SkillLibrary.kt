@@ -3,11 +3,14 @@ package com.gikoko.gicode
 import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
+import java.io.File
 
 data class AgentSkill(val id: String, val title: String, val description: String, val instructions: String, val source: Uri? = null)
 
-/** Loads built-in skills and imports user-authored SKILL.md files through SAF. */
+/** Loads built-in, locally installed and user-imported SKILL.md files. */
 class SkillLibrary(private val context: Context) {
+    fun loadAll(): List<AgentSkill> = (loadBundled() + loadInstalled()).distinctBy { it.id }.take(200)
+
     fun loadBundled(): List<AgentSkill> {
         val result = mutableListOf<AgentSkill>()
         fun visit(path: String) {
@@ -20,12 +23,40 @@ class SkillLibrary(private val context: Context) {
                         parseText(text, path.substringAfterLast('/'))?.let { result.add(it) }
                     } catch (_: Exception) { }
                 }
-            } else {
-                children.forEach { child -> visit("$path/$child") }
-            }
+            } else children.forEach { child -> visit("$path/$child") }
         }
         visit("skills")
         return result
+    }
+
+    fun loadInstalled(): List<AgentSkill> {
+        val root = File(context.filesDir, "skills")
+        if (!root.isDirectory) return emptyList()
+        return root.walkTopDown().filter { it.isFile && it.name.equals("SKILL.md", true) }
+            .take(100).mapNotNull { file ->
+                try { parseText(file.readText(Charsets.UTF_8).take(128 * 1024), file.parentFile?.name ?: "Installed skill") }
+                catch (_: Exception) { null }
+            }.toList()
+    }
+
+    fun installRemote(text: String): AgentSkill {
+        require(text.length in 20..128 * 1024) { "Invalid skill size" }
+        require(text.trimStart().startsWith("---")) { "SKILL.md must include YAML frontmatter" }
+        require(Regex("(?im)^name\\s*:").containsMatchIn(text)) { "Skill metadata is missing name" }
+        require(Regex("(?im)^description\\s*:").containsMatchIn(text)) { "Skill metadata is missing description" }
+        val skill = parseText(text, "Remote skill") ?: error("Unable to parse skill")
+        val root = File(context.filesDir, "skills")
+        val folder = File(root, skill.id)
+        require(!folder.exists()) { "A skill with this name is already installed" }
+        require(root.mkdirs() || root.isDirectory) { "Unable to create skill storage" }
+        require(folder.mkdirs()) { "Unable to create skill folder" }
+        try {
+            File(folder, "SKILL.md").writeText(text, Charsets.UTF_8)
+        } catch (e: Exception) {
+            folder.deleteRecursively()
+            throw e
+        }
+        return skill
     }
 
     fun loadFromFolder(treeUri: Uri, maxSkills: Int = 100): List<AgentSkill> {
@@ -64,9 +95,10 @@ class SkillLibrary(private val context: Context) {
     private fun parseText(text: String, fallback: String): AgentSkill? {
         if (text.isBlank()) return null
         val title = text.lines().firstOrNull { it.trim().startsWith("# ") }
-            ?.trim()?.removePrefix("# ") ?: fallback
+            ?.trim()?.removePrefix("# ") ?: text.lines().firstOrNull { it.trim().startsWith("name:") }
+                ?.substringAfter(":")?.trim() ?: fallback
         val description = text.lines().firstOrNull { it.trim().startsWith("description:", true) }
-            ?.substringAfter(":")?.trim() ?: "User imported skill"
+            ?.substringAfter(":")?.trim() ?: "Agent skill"
         return AgentSkill(
             title.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').take(64),
             title.take(100), description.take(240), text
