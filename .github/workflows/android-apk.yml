@@ -1,21 +1,28 @@
-name: GIcode Android APK
+name: GIcode Dual APK Build & Release
+
 on:
-  workflow_dispatch:
   push:
     branches: [ main ]
+    tags: [ "v*" ]
+  workflow_dispatch:
+
 permissions:
-  contents: read
+  contents: write
+
 jobs:
   build:
+    name: Build Redmi 9A + Universal APKs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - name: Prepare GIcode branding resources
         shell: bash
         run: |
@@ -24,7 +31,7 @@ jobs:
             sudo apt-get update -qq
             sudo apt-get install -y imagemagick
           fi
-          mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi app/src/main/res/drawable-nodpi app/src/main/res/drawable
+          mkdir -p app/src/main/res/mipmap-mdpi app/src/main/res/mipmap-hdpi app/src/main/res/mipmap-xhdpi app/src/main/res/mipmap-xxhdpi app/src/main/res/mipmap-xxxhdpi app/src/main/res/drawable-nodpi
           convert assets/branding/gicode_icon_512.png -resize 48x48 app/src/main/res/mipmap-mdpi/ic_launcher.png
           convert assets/branding/gicode_icon_512.png -resize 72x72 app/src/main/res/mipmap-hdpi/ic_launcher.png
           convert assets/branding/gicode_icon_512.png -resize 96x96 app/src/main/res/mipmap-xhdpi/ic_launcher.png
@@ -32,23 +39,71 @@ jobs:
           convert assets/branding/gicode_icon_512.png -resize 192x192 app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
           convert assets/branding/gicode_icon_512.png -resize 432x432 app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png
           cp assets/branding/gicode_splash_1080x1920.png app/src/main/res/drawable-nodpi/gicode_splash.png
+
       - name: Configure Android SDK
         shell: bash
         run: |
+          set -euo pipefail
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
           if [ -z "$SDKMANAGER" ]; then echo "sdkmanager not found under $ANDROID_HOME"; exit 1; fi
           yes | "$SDKMANAGER" --licenses || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
           echo "sdk.dir=$ANDROID_HOME" > local.properties
+
       - name: Install Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build ARMv7 debug APK
-        run: gradle --no-daemon assembleDebug
-      - name: Upload APK
+
+      - name: Build both release APKs
+        run: gradle --no-daemon assembleRedmi9aRelease assembleUniversalRelease
+
+      - name: Verify APK signatures and package outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          REDMI="app/build/outputs/apk/redmi9a/release/app-redmi9a-release.apk"
+          UNIVERSAL="app/build/outputs/apk/universal/release/app-universal-release.apk"
+          test -s "$REDMI"
+          test -s "$UNIVERSAL"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          "$APKSIGNER" verify --verbose "$REDMI"
+          "$APKSIGNER" verify --verbose "$UNIVERSAL"
+          mkdir -p release
+          cp "$REDMI" release/GIcode-v0.0.1-Redmi9A-ARMv7.apk
+          cp "$UNIVERSAL" release/GIcode-v0.0.1-Universal.apk
+          sha256sum release/*.apk | tee release/SHA256SUMS.txt
+
+      - name: Upload Redmi 9A APK
         uses: actions/upload-artifact@v4
         with:
-          name: GIcode-v0.0.1-ARMv7
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: GIcode-v0.0.1-Redmi9A-ARMv7
+          path: release/GIcode-v0.0.1-Redmi9A-ARMv7.apk
           if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Universal APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GIcode-v0.0.1-Universal
+          path: release/GIcode-v0.0.1-Universal.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: GIcode-SHA256SUMS
+          path: release/SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: GIcode ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            release/GIcode-v0.0.1-Redmi9A-ARMv7.apk
+            release/GIcode-v0.0.1-Universal.apk
+            release/SHA256SUMS.txt
