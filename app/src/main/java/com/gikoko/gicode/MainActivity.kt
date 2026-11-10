@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -292,7 +293,7 @@ private fun ChatScreen(
             Text(model.ifBlank { "No model" }, color = Muted, fontSize = 9.sp)
             TextButton(onClick = onNewChat) { Text("+ NEW", color = Neon, fontSize = 10.sp) }
         }
-        Row(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             AgentMode.values().forEach { item ->
                 FilterChip(
                     selected = mode == item,
@@ -300,8 +301,7 @@ private fun ChatScreen(
                     label = { Text(item.label, fontSize = 9.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Neon.copy(alpha = .18f),
-                        selectedLabelColor = Neon,
-                        labelColor = Muted
+                        selectedLabelColor = Neon
                     )
                 )
             }
